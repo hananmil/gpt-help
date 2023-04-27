@@ -1,0 +1,81 @@
+html,
+body {
+    height: 100%;
+    margin: 0%;
+}
+
+table {
+    border-collapse: collapse;
+    border: 1px solid;
+    border-color: var(--vscode-focusBorder);
+}
+
+
+th,
+td {
+    padding: 4px;
+    text-align: left;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+    border-color: var(--vscode-focusBorder);
+}
+
+th {
+    background-color: var(--vscode-titleBar-activeBackground);
+}
+
+pre {
+    margin: 0px;
+    color: var(--vscode-editor-foreground);
+    color: #007acc;
+}
+
+.hljs {
+    background: var(--vscode-editor-background);
+    border-color: var(--vscode-focusBorder);
+    border-style: solid;
+    border-width: 1px;
+    color: var(--vscode-editor-foreground);
+    padding: 1em;
+    min-width: 300px;
+}
+
+.hljs-string,
+.hljs-section,
+.hljs-selector-class,
+.hljs-template-variable,
+.hljs-deletion {
+    color: var(--vscode-debugTokenExpression-string);
+}
+
+.hljs-keyword {
+    color: var(--vscode-editor-foreground)
+}
+
+.hljs-title {
+    color: var(--vscode-debugTokenExpression-boolean)
+}
+
+.hljs-params {
+    color: var(--vscode-debugTokenExpression-number)
+}
+
+.hljs-variable {
+    color: var(--vscode-debugTokenExpression-boolean)
+}
+
+
+
+
+.code-toolbar {
+    background-color: var(--vscode-editorSuggestWidget-selectedBackground);
+    border-color: var(--vscode-focusBorder);
+    border-style: solid;
+    border-top: none;
+    border-width: 1px;
+    display: flex;
+    gap: 2em;
+    justify-content: flex-end;
+    padding: 3px;
+    margin-bottom: 2em;
+}

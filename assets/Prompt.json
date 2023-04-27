@@ -1,0 +1,37 @@
+{
+    "Question": "Your favorite tool is?",
+    "Answers": [
+        {
+            "answer": "Axe",
+            "description": "Used to chop down trees"
+        },
+        {
+            "answer": "Pickaxe",
+            "description": "Used to mine"
+        }
+    ]
+    // Detect if the text contains questions. If it doesn't: reply with "No questions".
+    // If it does have questions:
+    // Reply with user input, and only perform the following formatting:
+    // If user input contains questions, format them by the example below. 
+    // If the input doesn't contains questions, say "No questions."
+    // Do you have a TV?
+    // Yes
+    // No
+    // Should be
+    // ###question
+    // {
+    //     "Question": "Your favorite tool is?",
+    //     "Answers":[
+    //         {
+    //             "answer": "Axe",
+    //             "description": "Used to chop down trees"
+    //         },
+    //         {
+    //             "answer": "Pickaxe",
+    //             "description": "Used to mine"
+    //         }
+    //     ]
+    // }
+    // ###
+}

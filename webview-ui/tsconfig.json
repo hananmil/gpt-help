@@ -1,0 +1,17 @@
+{
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "include": [
+    "src/**/*",
+    "../src/services"
+  ],
+  "exclude": [
+    "node_modules/*",
+    "__sapper__/*",
+    "public/*"
+  ],
+  "buildOptions": {},
+  "compilerOptions": {
+    "ignoreDeprecations": "5.0",
+    "target": "es6",
+  }
+}
