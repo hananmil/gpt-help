@@ -37,9 +37,9 @@ export class ChatMessages {
   }
 
   private onMessageReceived(message) {
-    console.log("Message received", message);
+    // console.log("Message received", message);
     switch (message.action) {
-      case "chatResult":
+      case "chatReply":
         this.updateMessage(message.message);
         break;
       case "clearResult":
@@ -62,18 +62,23 @@ export class ChatMessages {
     return newMessage.id;
   }
 
-  public updateMessage(message: Partial<IChatMessage>) {
-    console.log("Updating message", message);
+  public updateMessage(message: Partial<any>) {
+    // console.log("Updating message", message);
     const index = this._messages.findIndex((m) => m.id === message.id);
-    if (message.text?.startsWith("###") && message.text?.endsWith("###")) {
-      const questions = JSON.parse(message.text.substring(3, message.text.length - 3));
-      message.questions = questions;
-      console.log("Message is a question ", questions);
-    }
+    // if (message.text?.startsWith("###") && message.text?.endsWith("###")) {
+    //   const questions = JSON.parse(message.text.substring(3, message.text.length - 3));
+    //   message.questions = questions;
+    //   console.log("Message is a question ", questions);
+    // }
 
     if (index === -1) {
       throw new Error(`Message with id ${message.id} not found`);
     }
+    if (message.firstReply === false) {
+      message.text = this._messages[index].text + message.text;
+    }
+
+    console.log("Updating message full text", message);
     this._messages[index] = { ...this._messages[index], ...message };
     this.updateMessages();
   }

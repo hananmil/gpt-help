@@ -16,7 +16,7 @@ export class UserChat {
   private internalDialog: ChatAccess = new ChatAccess();
   private messages: Array<IChatMessage> = [];
 
-  public async processMessage(messageString: string): Promise<any> {
+  public async processMessage(messageString: string, postMessage: (message: any) => Thenable<boolean>) {
     const parsed = JSON.parse(messageString);
 
     const message = parsed.message as IChatMessage;
@@ -24,34 +24,42 @@ export class UserChat {
     switch (action) {
       case "send": {
         this.messages.push(message);
-        var result = await this.internalDialog.helpTheUser(this.mapMessages());
+        let firstReply = true;
+        await this.internalDialog.sendMessage(this.mapMessages(), (data: string) => {
+          var responseMessage = {
+            id: message.replyMessageId ?? "",
+            replyToMessageId: message.id,
+            sender: "bot",
+            text: data,
+            timestamp: Date.now(),
+            isWriting: true,
+            firstReply,
+          };
+          firstReply = false;
+          postMessage({ action: "chatReply", message: responseMessage });
+        });
 
-        var formattedResult = await this.internalDialog.detectQuestions(result);
-        if (formattedResult !== "No questions.") {
-          result = formattedResult;
-        }
-
-        const response = this.convertToHtml(result);
-
-        var responseMessage: IChatMessage = {
+        var responseMessage = {
           id: message.replyMessageId ?? "",
           replyToMessageId: message.id,
           sender: "bot",
-          text: response,
+          text: "",
           timestamp: Date.now(),
           isWriting: false,
+          firstReply: false,
         };
-
-        return { action: "chatResult", message: responseMessage };
+        postMessage({ action: "chatReply", message: responseMessage });
+        return;
       }
       case "clear": {
         console.log("clearing session");
         this.messages = [];
-        return { action: "clearResult", message: "cleared" };
+        postMessage({ action: "clearResult", message: "cleared" });
+        return;
       }
       default: {
-        console.error("unknown action", action);
-        return { action: "unknown", message: "unknown" };
+        console.error("unknown action", action, message, messageString);
+        postMessage({ action: "unknown", message: "unknown" });
       }
     }
   }
@@ -63,14 +71,5 @@ export class UserChat {
         role: (m.sender === "bot" ? "agent" : m.sender) as ChatCompletionRequestMessageRoleEnum,
       };
     });
-  }
-
-  private convertToHtml(input: string | undefined): string | undefined {
-    if (!input) {
-      return input;
-    }
-    const md = MarkdownIt();
-    input = md.render(input);
-    return input;
   }
 }

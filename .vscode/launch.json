@@ -30,5 +30,23 @@
 			],
 			"preLaunchTask": "${defaultBuildTask}"
 		},
+		{
+			"name": "Run api server",
+			"type": "node",
+			"request": "launch",
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Start API",
+			"program": "${workspaceFolder}/node_modules/ts-node/dist/bin.js",
+			"args": [
+				"${workspaceFolder}/src/index.ts"
+			],
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"console": "integratedTerminal"
+		}
 	]
 }

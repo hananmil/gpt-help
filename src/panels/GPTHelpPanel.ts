@@ -143,9 +143,7 @@ export class GPTHelpPanel {
       async (message: any) => {
         message = JSON.parse(message);
         // const action = message.action;
-        const response = await this._session.processMessage(JSON.stringify(message));
-        await webview.postMessage(response);
-        return;
+        await this._session.processMessage(JSON.stringify(message), webview.postMessage);
       },
       undefined,
       this._disposables

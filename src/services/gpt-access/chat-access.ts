@@ -55,6 +55,10 @@ For every question you ask the user, provide the user with possible answers.
 
   constructor() {}
 
+  public async sendMessage(chat: Array<ChatCompletionRequestMessage>, onData: (data: string) => void) {
+    return await this._chatService.sendMessageWStreamingResponse(chat, onData);
+  }
+
   public async helpTheUser(chat: Array<ChatCompletionRequestMessage>): Promise<string> {
     var messages = [...ChatAccess._helpTheUserPrompt, ...chat];
     const result = await this._chatService.sendMessage(messages);

@@ -15,6 +15,18 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"type": "npm",
+			"script": "start:api",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+		},
+		{
+			"type": "npm",
+			"script": "start:webview",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
 		}
 	]
 }

@@ -13,12 +13,14 @@ wss.on("connection", (ws) => {
 
   ws.on("message", async (message) => {
     const parsedMessage = JSON.parse(message.toString());
-    console.log("Received message: ", parsedMessage);
+    // console.log("Received message: ", parsedMessage);
 
-    var responseMessage = await chat.processMessage(message.toString());
-    console.log("Response message: ", responseMessage);
-    wss.clients.forEach((client) => {
-      client.send(Buffer.from(JSON.stringify(responseMessage)));
+    await chat.processMessage(message.toString(), async (message: any) => {
+      // console.log("Response message: ", message);
+      wss.clients.forEach((client) => {
+        client.send(Buffer.from(JSON.stringify(message)));
+      });
+      return true;
     });
   });
 });

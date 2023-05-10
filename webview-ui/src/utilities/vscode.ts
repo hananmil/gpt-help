@@ -99,7 +99,7 @@ class VSCodeSimulation {
   };
 
   private onMessageReturn = (message: any) => {
-    console.log("Received message: ", message);
+    // console.log("Received message: ", message);
     window.postMessage(message, "*");
   };
 }
