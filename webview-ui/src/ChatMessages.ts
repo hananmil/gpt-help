@@ -74,11 +74,6 @@ export class ChatMessages {
     if (index === -1) {
       throw new Error(`Message with id ${message.id} not found`);
     }
-    if (message.firstReply === false) {
-      message.text = this._messages[index].text + message.text;
-    }
-
-    console.log("Updating message full text", message);
     this._messages[index] = { ...this._messages[index], ...message };
     this.updateMessages();
   }

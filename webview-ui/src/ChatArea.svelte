@@ -2,22 +2,12 @@
 
 <script type="ts">
   import { ChatMessages } from "./ChatMessages";
-  import MarkdownIt from "markdown-it";
 
   export let messages: ChatMessages = new ChatMessages();
 
   messages.setOnMessagesChangedHandler(() => {
     messages = messages;
   });
-
-  function convertToHtml(input: string | undefined): string | undefined {
-    if (!input) {
-      return input;
-    }
-    const md = MarkdownIt();
-    input = md.render(input);
-    return input;
-  }
 </script>
 
 <section class="chat-view">
@@ -26,7 +16,7 @@
       <p class="message-sender {message.sender}">{message.sender ?? "Unknown sender"}:</p>
       {#if message.text}
         <p class="message-text">
-          {@html convertToHtml(message.text)}
+          {@html message.text}
         </p>
       {/if}
       {#if !message.text && message.isWriting}

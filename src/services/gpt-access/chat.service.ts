@@ -8,7 +8,7 @@ import {
 
 //This class implements the chat service interface
 export class ChatService implements ChatService {
-  // private apiKey = "sk-#q#j#K#r#V#aDPSIXxIPEvtxa#aT3BlbkFJrVQPCUnF6#obxOQWEzomU###";
+  private apiKey = "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";
   public config: Configuration = new Configuration({
     apiKey: this.apiKey,
   });
@@ -46,16 +46,18 @@ export class ChatService implements ChatService {
   ) {
     var request = this.createRequest(message);
     request.stream = true;
-    var requestBode = JSON.stringify(request);
+    var requestBody = JSON.stringify(request);
+    console.log("requestBody", requestBody);
     var response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + this.apiKey,
       },
-      body: requestBode,
+      body: requestBody,
     });
     if (!response.ok) {
+      // console.error("response", response);
       throw new Error("Network response was not ok");
     }
     if (response.body === null) {

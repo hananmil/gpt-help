@@ -24,31 +24,32 @@ export class UserChat {
     switch (action) {
       case "send": {
         this.messages.push(message);
-        let firstReply = true;
         await this.internalDialog.sendMessage(this.mapMessages(), (data: string) => {
-          var responseMessage = {
-            id: message.replyMessageId ?? "",
-            replyToMessageId: message.id,
-            sender: "bot",
-            text: data,
-            timestamp: Date.now(),
-            isWriting: true,
-            firstReply,
-          };
-          firstReply = false;
+          var responseMessage: IChatMessage | undefined;
+
+          responseMessage = this.messages.find((m) => m.id === message.replyMessageId);
+
+          if (!responseMessage) {
+            responseMessage = {
+              id: message.replyMessageId ?? "",
+              replyToMessageId: message.id,
+              sender: "bot",
+              text: data,
+              timestamp: Date.now(),
+              isWriting: true,
+            };
+            this.messages.push(responseMessage);
+          } else {
+            responseMessage.text += data;
+          }
+
+          var md = new MarkdownIt();
+          responseMessage = { ...responseMessage };
+          responseMessage.text = md.render(responseMessage.text ?? "");
+
           postMessage({ action: "chatReply", message: responseMessage });
         });
 
-        var responseMessage = {
-          id: message.replyMessageId ?? "",
-          replyToMessageId: message.id,
-          sender: "bot",
-          text: "",
-          timestamp: Date.now(),
-          isWriting: false,
-          firstReply: false,
-        };
-        postMessage({ action: "chatReply", message: responseMessage });
         return;
       }
       case "clear": {
@@ -68,7 +69,7 @@ export class UserChat {
     return this.messages.map((m) => {
       return {
         content: m.text as string,
-        role: (m.sender === "bot" ? "agent" : m.sender) as ChatCompletionRequestMessageRoleEnum,
+        role: (m.sender === "bot" ? "assistant" : m.sender) as ChatCompletionRequestMessageRoleEnum,
       };
     });
   }
