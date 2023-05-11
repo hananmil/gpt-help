@@ -1,6 +1,11 @@
 import { UserChat } from "./services";
 
 import { WebSocket } from "ws";
+
+import * as dotenv from "dotenv";
+
+dotenv.config({ path: __dirname + "/../.env" });
+
 const chat = new UserChat();
 const wss = new WebSocket.Server({ path: "/api/socket", port: 3000 });
 console.log(

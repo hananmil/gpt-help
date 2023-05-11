@@ -8,7 +8,7 @@ import {
 
 //This class implements the chat service interface
 export class ChatService implements ChatService {
-  private apiKey = "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";
+  private apiKey = process.env.OPENAI_API_KEY || "";
   public config: Configuration = new Configuration({
     apiKey: this.apiKey,
   });
@@ -16,6 +16,7 @@ export class ChatService implements ChatService {
   private api: OpenAIApi;
 
   constructor() {
+    console.log("apiKey", this.apiKey);
     this.api = new OpenAIApi(this.config);
   }
 
@@ -78,7 +79,7 @@ export class ChatService implements ChatService {
         .filter((line) => line !== "" && line !== "[DONE]") // Remove empty lines and "[DONE]"
         .map((line) => {
           var result = JSON.parse(line);
-          console.log("line", result.choices[0]);
+          // console.log("line", result.choices[0]);
           return result;
         }); // Parse the JSON string
 
