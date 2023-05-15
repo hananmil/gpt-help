@@ -90,7 +90,7 @@ export class ChatMessages {
 
   public clearMessages() {
     console.log(`Clearing ${this._messages.length} messages`);
-    this._messages = [];
+    this._messages = this._messages.filter((m) => m.isWriting && m.sender === "user");
     this.updateMessages();
   }
 
@@ -100,7 +100,7 @@ export class ChatMessages {
 
   private updateMessages() {
     this.messages = [...this._messages];
-    localStorage.setItem("messages", JSON.stringify(this._messages));
+    localStorage.setItem("messages", JSON.stringify(this._messages.filter((m) => !m.isWriting)));
     this._onMessagesChanged();
   }
 

@@ -12,7 +12,7 @@
 
 <section class="chat-view">
   {#each messages.messages as message}
-    <div class="message">
+    <div class="message {message.isWriting ? 'writing' : ''}">
       <p class="message-sender {message.sender}">{message.sender ?? "Unknown sender"}:</p>
       {#if message.text}
         <p class="message-text">
@@ -42,6 +42,11 @@
     display: inline;
     flex-direction: column;
     align-items: flex-start;
+    white-space: break-spaces;
+  }
+
+  .message.writing {
+    font-style: italic;
   }
 
   .message :global(p) {
@@ -54,27 +59,48 @@
     padding-inline-start: 2em;
   }
 
-  .message > :global(p) :global(p):first-child {
-    /* vertical-align: bottom; */
-  }
-
   .message > p {
     line-height: 1.6em;
   }
 
   .message-sender {
     border-bottom: var(--vscode-activityBarBadge-background) 1px solid;
+    font-family: monospace;
+    display: inline-block;
+    min-width: 7em;
+  }
+  .message-sender::before {
+    content: "";
+    width: 2em;
+    height: 2em;
+    display: inline-block;
+    background-size: contain;
+    border-radius: 3em;
+    vertical-align: middle;
+    margin-right: 1em;
   }
 
-  .message-sender > p {
-    font-weight: bold;
-  }
   .message-sender.user::before {
-    content: "\1f9D0";
+    /* content: "\1f9D0"; */
+    background-image: url("/assets/avatar.png");
   }
 
   .message-sender.bot::before {
-    content: "\1f916";
+    background-image: url("/assets/robotvatar.png");
+  }
+
+  .message :global(table) {
+    margin-left: 4em;
+    margin-top: 1em;
+  }
+
+  .message :global(th) {
+    background-color: var(--vscode-activityBarBadge-background);
+    text-align: center;
+  }
+
+  .message :global(tr):hover {
+    font-weight: bold;
   }
 
   .message-text {

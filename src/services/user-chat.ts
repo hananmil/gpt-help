@@ -24,11 +24,12 @@ export class UserChat {
     switch (action) {
       case "send": {
         this.messages.push(message);
+        var responseMessage: IChatMessage | undefined;
+
+        var md = new MarkdownIt();
+
         await this.internalDialog.sendMessage(this.mapMessages(), (data: string) => {
-          var responseMessage: IChatMessage | undefined;
-
           responseMessage = this.messages.find((m) => m.id === message.replyMessageId);
-
           if (!responseMessage) {
             responseMessage = {
               id: message.replyMessageId ?? "",
@@ -43,12 +44,18 @@ export class UserChat {
             responseMessage.text += data;
           }
 
-          var md = new MarkdownIt();
           responseMessage = { ...responseMessage };
           responseMessage.text = md.render(responseMessage.text ?? "");
 
           postMessage({ action: "chatReply", message: responseMessage });
         });
+
+        if (!responseMessage) {
+          return;
+        }
+        responseMessage.isWriting = false;
+
+        postMessage({ action: "chatReply", message: responseMessage });
 
         return;
       }
