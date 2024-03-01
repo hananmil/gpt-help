@@ -141,12 +141,11 @@ export class GPTHelpPanel {
   private _setWebviewMessageListener(webview: Webview) {
     webview.onDidReceiveMessage(
       async (message: any) => {
-        message = JSON.parse(message);
         // const action = message.action;
-        await this._session.processMessage(JSON.stringify(message), webview.postMessage);
-      },
-      undefined,
-      this._disposables
-    );
-  }
+
+        this._session.processMessage(JSON.parse(message),
+          async (message: any) => {
+            return await webview.postMessage(JSON.stringify(message));
+          });
+      }
 }

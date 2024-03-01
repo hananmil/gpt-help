@@ -1,26 +1,48 @@
 <svelte:options accessors={true} />
 
-<script type="ts">
-  import { ChatMessages } from "./ChatMessages";
-
-  export let messages: ChatMessages = new ChatMessages();
-
-  messages.setOnMessagesChangedHandler(() => {
-    messages = messages;
+<script lang="ts">
+  import { onDestroy, onMount } from "svelte";
+  import {
+    store,
+    type AnyChatMessage,
+    type RequestChatMessage,
+    type AssistantChatMessage,
+  } from "./ChatMessages";
+  import type { Unsubscriber } from "svelte/store";
+  import RequestMessage from "./RequestMessage.svelte";
+  import ResponseMessage from "./ResponseMessage.svelte";
+  let messages: AnyChatMessage[] = [];
+  let subscription: Unsubscriber;
+  onMount(() => {
+    console.log("-------------------ChatArea mounted-----------------");
+    subscription = store.subscribe((value) => {
+      messages = value;
+    });
   });
+  onDestroy(() => {
+    subscription();
+  });
+  function toRequest(message: AnyChatMessage): RequestChatMessage {
+    return message as RequestChatMessage;
+  }
+  function toAssistant(message: AnyChatMessage): AssistantChatMessage {
+    return message as AssistantChatMessage;
+  }
 </script>
 
 <section class="chat-view">
-  {#each messages.messages as message}
+  {#each messages as message}
     <div class="message {message.isWriting ? 'writing' : ''}">
-      <p class="message-sender {message.sender}">{message.sender ?? "Unknown sender"}:</p>
-      {#if message.text}
+      <p class="message-sender {message.type}">{message.type}:</p>
+      {#if message.type === "request"}
         <p class="message-text">
-          {@html message.text}
+          <RequestMessage message={toRequest(message)} />
         </p>
       {/if}
-      {#if !message.text && message.isWriting}
-        <p class="loader">Writing...</p>
+      {#if message.type === "response"}
+        <p class="message-text">
+          <ResponseMessage message={toAssistant(message)} />
+        </p>
       {/if}
     </div>
   {/each}

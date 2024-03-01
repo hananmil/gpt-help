@@ -1,115 +1,84 @@
-import { BotService } from "./bot.service";
-
-export interface IChatMessage {
+import type { ChatCompletionChunk, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
+import { get, writable } from "svelte/store";
+export interface ChatMessage<T> {
   id: string;
-  replyMessageId?: string;
-  replyToMessageId?: string;
-  sender?: string;
-  text?: string;
   timestamp?: number;
   isWriting: boolean;
-  questions?: any[];
+  type: 'request' | 'response';
+  message: T;
 }
 
-export class ChatMessages {
-  private _messages: IChatMessage[] = [];
-  private botService: BotService = new BotService();
-  private _onMessagesChanged: () => void = () => {};
+export type AnyChatMessage = ChatMessage<unknown>;
 
-  public messages: IChatMessage[] = [];
+export interface RequestChatMessage extends ChatMessage<ChatCompletionUserMessageParam> {
+  type: "request";
+  replyMessageId?: string;
+}
 
-  constructor() {
-    const messages: IChatMessage[] = JSON.parse(localStorage.getItem("messages"));
-    if (messages) {
-      this._messages = messages;
-      this.updateMessages();
+export interface AssistantChatMessage extends ChatMessage<ChatCompletionChunk.Choice[]> {
+  type: "response";
+  replyToMessageId: string;
+}
+
+
+function readCache() {
+  try {
+    const json = localStorage.getItem("messages");
+    return json ? JSON.parse(json) : [];
+
+  } catch (e) {
+    console.warn("Error reading cache", e);
+    return [];
+  }
+}
+function createStore() {
+  const { subscribe, update } = writable<AnyChatMessage[]>(readCache());
+
+  return {
+    subscribe,
+    upsert: (message: AnyChatMessage) => {
+      update((messages: AnyChatMessage[]) => {
+        const index = messages.findIndex((m) => m.id === message.id);
+        if (index === -1) {
+          return [...messages, message];
+        }
+        messages[index] = message;
+        return messages;
+      });
+    },
+    get: () => get(store),
+    clear: () => {
+      update(() => []);
+    },
+    post: (message: AnyChatMessage) => {
+      console.log("Posting message", message);
+      window?.postMessage(message);
     }
+  };
+}
+console.log("----------------------Store creted----------------------");
 
-    this.botService.setMessageReceivedHandler(this.onMessageReceived.bind(this));
-  }
+export const store = createStore();
 
-  public getById(id: string): IChatMessage {
-    const index = this._messages.findIndex((m) => m.id === id);
-    if (index === -1) {
-      throw new Error(`Message with id ${id} not found`);
+window?.addEventListener('message', event => {
+  console.log("Received message", event.data);
+  const message = JSON.parse(event.data);
+  if (message.action === 'clearResult') {
+    if (message.message === 'cleared') {
+      store.clear();
+    } else {
+      console.error("Unknown message", message);
     }
-    return this._messages[index];
+  } else if (message.action === 'chatReply') {
+    store.upsert(message.message);
   }
+})
 
-  private onMessageReceived(message) {
-    // console.log("Message received", message);
-    switch (message.action) {
-      case "chatReply":
-        this.updateMessage(message.message);
-        break;
-      case "clearResult":
-        this.clearMessages();
-        break;
-      default:
-        console.error("Unknown action: " + message.action);
-    }
+export function generateRandomId(length: number = 10) {
+  let result = "";
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-
-  public addMessage(message: Partial<IChatMessage>): string {
-    if (message.id) {
-      throw new Error("Message id is not allowed to be set");
-    }
-    var newMessage: IChatMessage = { id: this.generateRandomId(5), isWriting: false, ...message };
-    this._messages.push(newMessage);
-    this.updateMessages();
-
-    console.log("added message", newMessage);
-    return newMessage.id;
-  }
-
-  public updateMessage(message: Partial<any>) {
-    // console.log("Updating message", message);
-    const index = this._messages.findIndex((m) => m.id === message.id);
-    // if (message.text?.startsWith("###") && message.text?.endsWith("###")) {
-    //   const questions = JSON.parse(message.text.substring(3, message.text.length - 3));
-    //   message.questions = questions;
-    //   console.log("Message is a question ", questions);
-    // }
-
-    if (index === -1) {
-      throw new Error(`Message with id ${message.id} not found`);
-    }
-    this._messages[index] = { ...this._messages[index], ...message };
-    this.updateMessages();
-  }
-
-  public removeMessage(id: string) {
-    console.log("Removing message", id);
-    const index = this._messages.findIndex((m) => m.id === id);
-    if (index === -1) {
-      throw new Error(`Message with id ${id} not found`);
-    }
-    this._messages.splice(index, 1);
-    this.updateMessages();
-  }
-
-  public clearMessages() {
-    console.log(`Clearing ${this._messages.length} messages`);
-    this._messages = this._messages.filter((m) => m.isWriting && m.sender === "user");
-    this.updateMessages();
-  }
-
-  public setOnMessagesChangedHandler(handler: () => void) {
-    this._onMessagesChanged = handler;
-  }
-
-  private updateMessages() {
-    this.messages = [...this._messages];
-    localStorage.setItem("messages", JSON.stringify(this._messages.filter((m) => !m.isWriting)));
-    this._onMessagesChanged();
-  }
-
-  private generateRandomId(length) {
-    let result = "";
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return result;
-  }
+  return result;
 }
