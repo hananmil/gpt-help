@@ -1,38 +1,27 @@
-import * as vscode from 'vscode';
 import { commands, ExtensionContext } from "vscode";
+import * as vscode from "vscode";
 import { GPTHelpPanel } from "./panels/GPTHelpPanel";
+import assisie from "./services/assisie";
+import { ServiceConnectionSocket } from "./services/socket";
 
 export async function activate(context: ExtensionContext): Promise<void> {
+  const credentials = await assisie.verifyLogin(context);
+  vscode.window.showInformationMessage(`${credentials.given_name} you are now logged in to Assisie!`);
+  const outputChannel = vscode.window.createOutputChannel("Assisie");
+  const socket = new ServiceConnectionSocket(credentials, outputChannel);
+  socket.connect();
+
   // Create the show GPT help command
-  const showHelloWorldCommand = commands.registerCommand("gpt-help-extention.showHelp", () => {
-    GPTHelpPanel.render(context.extensionUri);
+  const showChat = commands.registerCommand("gpt-help.chat", () => {
+    GPTHelpPanel.render(context.extensionUri, socket);
   });
 
-  let key = await context.secrets.get('OPENAI_API_KEY');
-  if (!key) {
-    await vscode.window.showInputBox({
-      password: true,
-      placeHolder: 'Enter your OpenAI API key',
-      prompt: 'This key will be stored securely in your user settings.',
-      ignoreFocusOut: true,
-    }).then((inputKey) => {
-      if (inputKey) {
-        key = inputKey
-        context.secrets.store('OPENAI_API_KEY', inputKey);
-      }
-    });
-    if (!key) {
-      vscode.window.showErrorMessage('You must enter an OpenAI API key to use this extension.');
-      return;
-    }
-  }
-  process.env['OPENAI_API_KEY'] = key;
-  // Add command to the extension context
-  addDisposable(context, showHelloWorldCommand);
+  addDisposable(context, showChat);
+  addDisposable(context, outputChannel);
 
-  GPTHelpPanel.render(context.extensionUri);
+  GPTHelpPanel.render(context.extensionUri, socket);
 
-  console.log('Congratulations, your extension "gpt-help-extention" is now active!');
+  console.log('Congratulations, your extension "gpt-help-extension" is now active!');
 }
 
 //a function to add disposable to execution context

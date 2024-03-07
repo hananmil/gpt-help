@@ -2,6 +2,13 @@ import { Disposable, Webview, WebviewPanel, window, Uri, ViewColumn } from "vsco
 import { getUri } from "../utilities/getUri";
 import { getNonce } from "../utilities/getNonce";
 import { UserChat } from "../services";
+import { Manager, Socket } from "socket.io-client";
+import { ServiceConnectionSocket } from "../services/socket";
+const WS_URL = "ws://localhost:3000";
+
+// const _manager = new Manager(WS_URL, {
+//         extraHeaders: { jwt: userInfo.jwt },
+//       });
 
 /**
  * This class manages the state and behavior of GPTHelpPanel webview panels.
@@ -17,7 +24,7 @@ export class GPTHelpPanel {
   public static currentPanel: GPTHelpPanel | undefined;
   private readonly _panel: WebviewPanel;
   private _disposables: Disposable[] = [];
-  private _session: UserChat = new UserChat();
+  private _socket: ServiceConnectionSocket;
 
   /**
    * The GPTHelpPanel class private constructor (called only from the render method).
@@ -25,7 +32,8 @@ export class GPTHelpPanel {
    * @param panel A reference to the webview panel
    * @param extensionUri The URI of the directory containing the extension
    */
-  private constructor(panel: WebviewPanel, extensionUri: Uri) {
+  private constructor(panel: WebviewPanel, extensionUri: Uri, socket: ServiceConnectionSocket) {
+    this._socket = socket;
     this._panel = panel;
 
     // Set an event listener to listen for when the panel is disposed (i.e. when the user closes
@@ -45,7 +53,7 @@ export class GPTHelpPanel {
    *
    * @param extensionUri The URI of the directory containing the extension.
    */
-  public static render(extensionUri: Uri) {
+  public static render(extensionUri: Uri, socket: ServiceConnectionSocket) {
     if (GPTHelpPanel.currentPanel) {
       // If the webview panel already exists reveal it
       GPTHelpPanel.currentPanel._panel.reveal(ViewColumn.One);
@@ -70,7 +78,7 @@ export class GPTHelpPanel {
         }
       );
 
-      GPTHelpPanel.currentPanel = new GPTHelpPanel(panel, extensionUri);
+      GPTHelpPanel.currentPanel = new GPTHelpPanel(panel, extensionUri, socket);
     }
   }
 
@@ -139,13 +147,12 @@ export class GPTHelpPanel {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
-    webview.onDidReceiveMessage(
-      async (message: any) => {
-        // const action = message.action;
-
-        this._session.processMessage(JSON.parse(message),
-          async (message: any) => {
-            return await webview.postMessage(JSON.stringify(message));
-          });
-      }
+    this._socket.on("message", (args) => {
+      webview.postMessage(args);
+    });
+    webview.onDidReceiveMessage(async (args: any) => {
+      // const action = message.action;
+      this._socket.send(args);
+    });
+  }
 }

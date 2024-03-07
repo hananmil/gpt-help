@@ -1,44 +1,45 @@
 <svelte:options accessors={true} />
 
-<script type="ts">
+<script lang="ts">
   import type { TextArea } from "@vscode/webview-ui-toolkit";
-  import { BotService } from "./bot.service";
-  import type { ChatMessages } from "./ChatMessages";
+  import { store } from "./messages.store";
+  import type { InteractionTextMessage } from "./dto/index";
+  import { vscode } from "./utilities/vscode";
 
   let input: TextArea = null;
-  let botService: BotService = new BotService();
 
-  export let messages: ChatMessages = null;
-  let currentMessageId: string = null;
+  let currentMessage: InteractionTextMessage;
 
   export function sendMessage() {
     const message = input.value;
     if (message.trim() !== "") {
-      if (currentMessageId === null) {
-        currentMessageId = messages.addMessage({ isWriting: false, sender: "user", text: message });
-      } else {
-        messages.updateMessage({ id: currentMessageId, isWriting: false, sender: "user", text: message });
+      if (!currentMessage) {
+        currentMessage = store.create(message, "user??");
       }
-      var replyMessageId = messages.addMessage({ isWriting: true, sender: "bot", text: "Thinking..." });
-      messages.updateMessage({ id: currentMessageId, replyMessageId });
-      botService.sendMessage(messages.getById(currentMessageId));
-      currentMessageId = null;
+      currentMessage.payload.text = message;
+
+      store.upsert(currentMessage);
+      console.log("sending message", currentMessage);
+      vscode.postMessage(currentMessage);
+
+      currentMessage = null;
       input.value = "";
     }
   }
 
   async function clearConversation() {
-    await botService.clearConversation();
   }
 
   function writing(event) {
-    if (input.value.trim() !== "" && currentMessageId === null) {
-      currentMessageId = messages.addMessage({ isWriting: true, sender: "user" });
+    if (input.value.trim() !== "" && !currentMessage) {
+      console.log("writing set to true");
+      currentMessage = store.create("writing...", "user??");
       return;
     }
-    if (input.value.trim() === "" && currentMessageId) {
-      messages.removeMessage(currentMessageId);
-      currentMessageId = null;
+    if (input.value.trim() === "" && currentMessage) {
+      console.log("writing set to false");
+      store.remove(currentMessage.messageId);
+      currentMessage = null;
     }
   }
 </script>

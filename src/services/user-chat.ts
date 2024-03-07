@@ -1,55 +1,105 @@
 import * as MarkdownIt from "markdown-it";
-import { ChatAccess, OnChunk } from "./gpt-access/chat";
-import { ChatCompletionAssistantMessageParam, ChatCompletionChunk, ChatCompletionUserMessageParam } from "openai/resources";
-import { Type } from "typescript";
-
-export interface ChatMessage<T> {
-  id: string;
-  timestamp?: number;
-  isWriting: boolean;
-  type: string;
-  message: T;
-}
-
-export type AnyChatMessage = ChatMessage<any>;
-
-export interface RequestChatMessage extends ChatMessage<ChatCompletionUserMessageParam> {
-  type: "request";
-  replyMessageId?: string;
-}
-
-export interface AssistantChatMessage extends ChatMessage<ChatCompletionChunk.Choice[]> {
-  type: "response";
-  replyToMessageId: string;
-}
-
+import { ChatAccess } from "./gpt-access/chat";
+import {
+  ChatCompletionChunk,
+  ChatCompletionMessageParam,
+  ChatCompletionToolMessageParam,
+  ChatCompletionUserMessageParam,
+} from "openai/resources";
+import {
+  AnyChatMessage,
+  RequestChatMessage,
+  ResponseChatMessage,
+  ResponseChatChunk,
+  ChatMessageMerger,
+} from "./gpt-access/dto";
+import { Tools } from "./gpt-access/tools";
 
 export class UserChat {
   private internalDialog: ChatAccess = new ChatAccess();
   private messages: Array<AnyChatMessage> = [];
 
   public async processMessage(request: any, postMessage: (message: any) => Thenable<boolean>) {
-
     const message = request.message as RequestChatMessage;
     const action = request.action as string;
 
     switch (action) {
       case "send": {
         this.messages.push(message);
-        let responseMessage: AssistantChatMessage | undefined;
+        let responseMessage: ResponseChatMessage | undefined;
+        let done = false;
+        while (!done) {
+          // let md = new MarkdownIt();
+          let seq = 0;
+          const manager = new ChatMessageMerger(message.id);
+          await this.internalDialog.sendMessage(
+            this.messages.map((m) => this.map(m)),
+            async (chunk: ChatCompletionChunk) => {
+              postMessage({
+                action: "chatChunk",
+                message: <ResponseChatChunk>{
+                  id: message.replyMessageId,
+                  seq: seq++,
+                  type: "chunk",
+                  isWriting: true,
+                  requestMessageId: message.id,
+                  timestamp: Date.now(),
+                  message: chunk,
+                },
+              });
+              responseMessage = manager.mergeChunk(chunk);
+            }
+          );
 
-        // let md = new MarkdownIt();
+          if (!responseMessage) {
+            return;
+          }
+          responseMessage.isWriting = false;
+          console.log("sending response", responseMessage);
+          this.messages.push(responseMessage);
+          await postMessage({ action: "chatReply", message: responseMessage });
 
-        await this.internalDialog.sendMessage(this.messages.map(m => this.map(m)), async (chunk: ChatCompletionChunk.Choice) => {
-          responseMessage = await this.onChunk(chunk, message);
-        });
-
-        if (!responseMessage) {
-          return;
+          if (responseMessage.message.choices[0].message.tool_calls) {
+            for (let i = 0; i < responseMessage.message.choices[0].message.tool_calls.length; i++) {
+              const toolsCall = responseMessage.message.choices[0].message.tool_calls[i];
+              const tool = Tools.getToolDelegate(toolsCall.function.name);
+              if (!tool) {
+                console.error("unknown tool", toolsCall.function.name);
+                return;
+              }
+              const toolResult = await tool(JSON.parse(toolsCall.function.arguments));
+              const resultMessage = <ChatCompletionToolMessageParam>{
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                tool_call_id: toolsCall.id,
+                role: "tool",
+                content: toolResult,
+              };
+              this.messages.push({
+                id: responseMessage.id,
+                type: "response",
+                isWriting: false,
+                message: {
+                  choices: [
+                    {
+                      message: resultMessage,
+                      index: 0,
+                      finish_reason: "stop",
+                    },
+                  ],
+                },
+              });
+            }
+          } else {
+            done = true;
+          }
         }
-
-        await postMessage({ action: "chatReply", message: responseMessage });
-
+        return;
+      }
+      case "loadMessages": {
+        console.log("loading messages");
+        for (let i = 0; i < this.messages.length; i++) {
+          await postMessage({ action: "chatReply", message: this.messages[i] });
+        }
         return;
       }
       case "clear": {
@@ -65,39 +115,18 @@ export class UserChat {
       }
     }
   }
-  map(m: AnyChatMessage): any {
+
+  private map(m: AnyChatMessage): ChatCompletionMessageParam {
     if (m.type === "request") {
+      const request = m as RequestChatMessage;
       return {
         name: "user",
-        role: 'user',
-        content: m.message.text,
+        role: "user",
+        content: request.message.content,
       } as ChatCompletionUserMessageParam;
     }
-    if (m.type === "response") {
-      return {
-        role: 'assistant',
-        message: m.message,
-        id: m.id,
-      } as ChatCompletionAssistantMessageParam;
-    }
+    const responseMessage = m as ResponseChatMessage;
+    const choice = responseMessage.message.choices[0];
+    return choice.message;
   }
-
-  private async onChunk(data: ChatCompletionChunk.Choice, request: RequestChatMessage): Promise<AssistantChatMessage> {
-    {
-      let responseMessage = this.messages.find((m) => m.id === request.replyMessageId) as AssistantChatMessage | undefined;
-      if (!responseMessage) {
-        responseMessage = <AssistantChatMessage>{
-          id: Math.random().toString(36).substring(7),
-          type: "response",
-          replyToMessageId: request.id,
-          message: [data],
-          isWriting: !data.finish_reason,
-        };
-        this.messages.push(responseMessage);
-      } else {
-        responseMessage.message.push(data);
-      }
-      return responseMessage;
-    }
-  };
 }

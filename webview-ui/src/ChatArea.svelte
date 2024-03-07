@@ -2,16 +2,12 @@
 
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
-  import {
-    store,
-    type AnyChatMessage,
-    type RequestChatMessage,
-    type AssistantChatMessage,
-  } from "./ChatMessages";
+  import { store } from "./messages.store";
   import type { Unsubscriber } from "svelte/store";
   import RequestMessage from "./RequestMessage.svelte";
   import ResponseMessage from "./ResponseMessage.svelte";
-  let messages: AnyChatMessage[] = [];
+  import { MessageAddressType, type InteractionTextMessage } from "./dto/index";
+  let messages: InteractionTextMessage[] = [];
   let subscription: Unsubscriber;
   onMount(() => {
     console.log("-------------------ChatArea mounted-----------------");
@@ -22,29 +18,22 @@
   onDestroy(() => {
     subscription();
   });
-  function toRequest(message: AnyChatMessage): RequestChatMessage {
-    return message as RequestChatMessage;
+  function toRequest(message: InteractionTextMessage): InteractionTextMessage {
+    return message as InteractionTextMessage;
   }
-  function toAssistant(message: AnyChatMessage): AssistantChatMessage {
-    return message as AssistantChatMessage;
+  function toAssistant(message: InteractionTextMessage): InteractionTextMessage {
+    return message as InteractionTextMessage;
   }
 </script>
 
 <section class="chat-view">
   {#each messages as message}
-    <div class="message {message.isWriting ? 'writing' : ''}">
-      <p class="message-sender {message.type}">{message.type}:</p>
-      {#if message.type === "request"}
-        <p class="message-text">
-          <RequestMessage message={toRequest(message)} />
-        </p>
-      {/if}
-      {#if message.type === "response"}
-        <p class="message-text">
-          <ResponseMessage message={toAssistant(message)} />
-        </p>
-      {/if}
-    </div>
+    {#if message.sourceType === MessageAddressType.User}
+      <RequestMessage message={toRequest(message)} />
+    {/if}
+    {#if message.sourceType === MessageAddressType.Agent}
+      <ResponseMessage message={toAssistant(message)} />
+    {/if}
   {/each}
 </section>
 
