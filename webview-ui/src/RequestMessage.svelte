@@ -7,10 +7,12 @@
 
 {#if message}
   <div class="message {message.finishedAt ?  '' : 'writing'}">
-    <p class="message-sender {message.sourceType}">User:</p>
+    <p class="message-sender">User</p>
     <p class="message-text">
       {message.payload.text}
     </p>
+    <br />
+   <small>{message.messageId}</small>
   </div>
 {/if}
 

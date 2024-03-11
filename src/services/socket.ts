@@ -1,6 +1,6 @@
 import { Manager, Socket } from "socket.io-client";
 import { WithJwt } from "./auth";
-import { OutputChannel } from "vscode";
+import { OutputChannel, StatusBarItem } from "vscode";
 
 export enum SocketStatus {
   new = "new",
@@ -22,10 +22,7 @@ export class ServiceConnectionSocket {
   private _onDropped: () => void = () => {};
   private _onConnected: () => void = () => {};
 
-  constructor(
-    userInfo: WithJwt,
-    private log: OutputChannel
-  ) {
+  constructor(userInfo: WithJwt) {
     this._manager = new Manager(WS_URL, {
       extraHeaders: { jwt: userInfo.jwt },
     });
@@ -38,26 +35,20 @@ export class ServiceConnectionSocket {
     this._socket.on("connect", () => {
       this._onConnected();
       this._status = SocketStatus.ready;
-      this.log.appendLine("Connected to Assisie");
       this._onReady();
     });
     this._socket.on("disconnect", () => {
-      this.log.append("Disconnected from Assisie");
       this._onBusy();
       this._status = SocketStatus.dropped;
       this._onDropped();
     });
-    this._socket.onAny((event, ...args) => {
-      this.log.appendLine(`Got event: ${event}, with data: ${args}`);
-    });
+    this._socket.onAny((event, ...args) => {});
   }
 
   public connect(): void {
-    this.log.appendLine("Connecting to Assisie");
     this._socket.connect();
   }
   public closeConnection() {
-    this.log.appendLine("Closing connection to Assisie");
     this._socket.disconnect();
   }
 

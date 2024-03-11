@@ -3,9 +3,11 @@
 <script lang="ts">
   import type { TextArea } from "@vscode/webview-ui-toolkit";
   import { store } from "./messages.store";
-  import type { InteractionTextMessage } from "./dto/index";
+  import { ParticipantType, type InteractionTextMessage, InteractionEvent } from "./dto/index";
   import { vscode } from "./utilities/vscode";
-
+  import type { IEvent } from "./dto/events";
+  import { V4MAPPED } from "dns";
+  // import uniqid from "uniqid";
   let input: TextArea = null;
 
   let currentMessage: InteractionTextMessage;
@@ -14,13 +16,19 @@
     const message = input.value;
     if (message.trim() !== "") {
       if (!currentMessage) {
-        currentMessage = store.create(message, "user??");
+        currentMessage = store.create(message);
       }
       currentMessage.payload.text = message;
 
       store.upsert(currentMessage);
       console.log("sending message", currentMessage);
-      vscode.postMessage(currentMessage);
+      const event = new InteractionEvent<InteractionTextMessage>(
+        'message',
+        currentMessage,
+        'inbound',  
+      )
+
+      vscode.postMessage(event);
 
       currentMessage = null;
       input.value = "";
@@ -33,7 +41,7 @@
   function writing(event) {
     if (input.value.trim() !== "" && !currentMessage) {
       console.log("writing set to true");
-      currentMessage = store.create("writing...", "user??");
+      currentMessage = store.create("writing...");
       return;
     }
     if (input.value.trim() === "" && currentMessage) {
@@ -49,10 +57,11 @@
     <vscode-text-area rows="4" id="user-input" bind:this={input} on:input={writing}>
       <span slot="start" class="codicon codicon-git-merge">Title</span>
     </vscode-text-area>
+    <p>Press <code>Ctrl</code>+<code>Enter</code> to send.</p>  
   </section>
   <div class="search-toolbar">
-    <vscode-button appearance="primary" on:click={sendMessage}>Send message</vscode-button>
-    <vscode-button appearance="primary" on:click={clearConversation}>Clear conversation</vscode-button>
+    <vscode-button appearance="primary" on:keydown={sendMessage}  on:click={sendMessage}>Send message</vscode-button>
+    <vscode-button appearance="primary" on:keydown={clearConversation} on:click={clearConversation}>Clear conversation</vscode-button>
   </div>
 </section>
 
@@ -74,10 +83,9 @@
     background-color: var(--vscode-editorSuggestWidget-selectedBackground);
     border-color: var(--vscode-focusBorder);
     border-style: solid;
-    border-top: none;
     border-width: 1px;
     display: flex;
-    gap: 2em;
+    gap: em;
     justify-content: flex-end;
     padding: 3px;
     margin-bottom: 2em;

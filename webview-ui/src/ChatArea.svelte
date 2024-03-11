@@ -6,7 +6,7 @@
   import type { Unsubscriber } from "svelte/store";
   import RequestMessage from "./RequestMessage.svelte";
   import ResponseMessage from "./ResponseMessage.svelte";
-  import { MessageAddressType, type InteractionTextMessage } from "./dto/index";
+  import { ParticipantType, type InteractionTextMessage } from "./dto/index";
   let messages: InteractionTextMessage[] = [];
   let subscription: Unsubscriber;
   onMount(() => {
@@ -28,10 +28,10 @@
 
 <section class="chat-view">
   {#each messages as message}
-    {#if message.sourceType === MessageAddressType.User}
+    {#if message.participantType === ParticipantType.User}
       <RequestMessage message={toRequest(message)} />
     {/if}
-    {#if message.sourceType === MessageAddressType.Agent}
+    {#if message.participantType === ParticipantType.Agent}
       <ResponseMessage message={toAssistant(message)} />
     {/if}
   {/each}

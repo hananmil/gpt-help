@@ -5,13 +5,16 @@
   export let message: InteractionTextMessage | undefined;
 </script>
 
-<span>
-  <div class="message {message.finishedAt ? '' : 'writing'}">
-    <span class="message-sender {message.sourceType}">{message.sourceType}</span>
-    <p class="message-text">{message.payload.text}</p>
+{#if message}
+  <div class="message {message.finishedAt ?  '' : 'writing'}">
+    <p class="message-sender">{message.participantType}</p>
+    <p class="message-text">
+      {message.payload.text}
+    </p>
+    <br />
+   <small>{message.messageId}</small>
   </div>
-</span>
-
+{/if}
 <style>
   .chat-view {
     min-height: calc(100% - var(--input-height) - 32px);
