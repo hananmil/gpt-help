@@ -4,9 +4,9 @@
   import { onDestroy, onMount } from "svelte";
   import { store } from "./messages.store";
   import type { Unsubscriber } from "svelte/store";
-  import RequestMessage from "./RequestMessage.svelte";
-  import ResponseMessage from "./ResponseMessage.svelte";
-  import { ParticipantType, type InteractionTextMessage } from "./dto/index";
+  import Message from "./Message.svelte";
+  import type { InteractionTextMessage } from "./dto";
+
   let messages: InteractionTextMessage[] = [];
   let subscription: Unsubscriber;
   onMount(() => {
@@ -18,22 +18,11 @@
   onDestroy(() => {
     subscription();
   });
-  function toRequest(message: InteractionTextMessage): InteractionTextMessage {
-    return message as InteractionTextMessage;
-  }
-  function toAssistant(message: InteractionTextMessage): InteractionTextMessage {
-    return message as InteractionTextMessage;
-  }
 </script>
 
 <section class="chat-view">
   {#each messages as message}
-    {#if message.participantType === ParticipantType.User}
-      <RequestMessage message={toRequest(message)} />
-    {/if}
-    {#if message.participantType === ParticipantType.Agent}
-      <ResponseMessage message={toAssistant(message)} />
-    {/if}
+      <Message message={message} />
   {/each}
 </section>
 

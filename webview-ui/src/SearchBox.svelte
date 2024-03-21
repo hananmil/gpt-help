@@ -2,7 +2,7 @@
 
 <script lang="ts">
   import type { TextArea } from "@vscode/webview-ui-toolkit";
-  import { store } from "./messages.store";
+  import { activeInteraction, store,activeSession } from "./messages.store";
   import { ParticipantType, type InteractionTextMessage, InteractionEvent } from "./dto/index";
   import { vscode } from "./utilities/vscode";
   import type { IEvent } from "./dto/events";
@@ -11,6 +11,9 @@
   let input: TextArea = null;
 
   let currentMessage: InteractionTextMessage;
+
+  $: interaction = $activeInteraction;
+  $: session = $activeSession;
 
   export function sendMessage() {
     const message = input.value;
@@ -22,11 +25,11 @@
 
       store.upsert(currentMessage);
       console.log("sending message", currentMessage);
-      const event = new InteractionEvent<InteractionTextMessage>(
-        'message',
-        currentMessage,
-        'inbound',  
-      )
+      const event = new InteractionEvent<InteractionTextMessage>({
+        action: 'sent',
+        payload: currentMessage,
+        interactionId: interaction?.id??session?.id,
+      })
 
       vscode.postMessage(event);
 
@@ -36,6 +39,8 @@
   }
 
   async function clearConversation() {
+    store.clear();
+    
   }
 
   function writing(event) {
@@ -46,7 +51,7 @@
     }
     if (input.value.trim() === "" && currentMessage) {
       console.log("writing set to false");
-      store.remove(currentMessage.messageId);
+      store.remove(currentMessage.id);
       currentMessage = null;
     }
   }
@@ -60,8 +65,16 @@
     <p>Press <code>Ctrl</code>+<code>Enter</code> to send.</p>  
   </section>
   <div class="search-toolbar">
+    <div class="toolbar-grow">
+      {#if  $activeSession}
+        Session id <vscode-tag>{$activeSession?.id??''}</vscode-tag>      
+      {/if}
+      {#if $activeInteraction}
+        Interaction id <vscode-tag>{$activeInteraction?.id??''}</vscode-tag>  {JSON.stringify($activeInteraction?.participants?.agents??'')}
+      {/if}
+    </div>
     <vscode-button appearance="primary" on:keydown={sendMessage}  on:click={sendMessage}>Send message</vscode-button>
-    <vscode-button appearance="primary" on:keydown={clearConversation} on:click={clearConversation}>Clear conversation</vscode-button>
+    <vscode-button appearance="primary" on:keydown={clearConversation} on:click={clearConversation}>Clear</vscode-button>
   </div>
 </section>
 
@@ -73,6 +86,23 @@
     overflow-y: auto;
     border-style: solid;
     border-width: 1px;
+  }
+
+  .toolbar-grow {
+    flex-grow: 1;
+    justify-content: center;
+  }
+
+  vscode-tag{
+    margin-top: 0.8em;
+    margin-bottom: 0.5em;
+    margin-left: 1em;
+  }
+
+  vscode-button{
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    margin-right: 1em ;
   }
 
   .bottom-section {

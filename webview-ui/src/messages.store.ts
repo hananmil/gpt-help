@@ -1,26 +1,28 @@
 import type { ChatCompletionChunk, ChatCompletionUserMessageParam } from "openai/resources/index.mjs";
-import { get, writable } from "svelte/store";
+import { get, writable, readable } from "svelte/store";
 import type { ChatCompletionMessage } from "openai/resources";
 import {
+  InteractionElementType,
   InteractionEvent,
   InteractionMessage,
-  NewInteractionMessage,
-  NewSessionMessage,
+  Interaction,
+  InteractionSession,
   InteractionTextMessage,
   ParticipantType,
   PayloadType,
 } from "./dto/index";
-import { v4 } from "uuid";
+import type { Writable } from "stream";
+import e from "cors";
 
-let activeSessionId: string | null = null;
-let activeInteractionId: string | null = null;
+let interaction = writable<Interaction>();
+let session = writable<InteractionSession>();
 
-function createStore() {
+export function createStore() {
   const { subscribe, update } = writable<InteractionTextMessage[]>([]);
 
   function upsertRecord(message: InteractionTextMessage) {
     update((messages: InteractionTextMessage[]) => {
-      const index = messages.findIndex((m) => m.messageId === message.messageId);
+      const index = messages.findIndex((m) => m.id === message.id);
       if (index === -1) {
         return [...messages, message];
       }
@@ -33,15 +35,12 @@ function createStore() {
     subscribe,
     create: (text: string): InteractionTextMessage => {
       const message: InteractionTextMessage = {
-        messageId: generateRandomId(10),
-        messageSequence: null,
-        version: 1,
+        id: generateRandomId(10),
         createdAt: new Date(),
         updatedAt: new Date(),
-        sessionId: activeSessionId,
-        interactionId: activeInteractionId,
-        participantId: null,
-        participantType: ParticipantType.User,
+        elementType: InteractionElementType.message,
+        from: { type: ParticipantType.user, id: "user-id" },
+        to: { type: ParticipantType.agent, id: "default" },
         payloadType: PayloadType.text,
         finishedAt: null,
         payload: { text },
@@ -55,7 +54,7 @@ function createStore() {
       func: (message: InteractionTextMessage | undefined) => InteractionTextMessage
     ) => {
       update((messages: InteractionTextMessage[]) => {
-        const index = messages.findIndex((m) => m.messageId === messageId);
+        const index = messages.findIndex((m) => m.id === messageId);
         if (index === -1) {
           messages.push(func(undefined));
           return messages;
@@ -66,7 +65,7 @@ function createStore() {
     },
     remove: (messageId: string) => {
       update((messages: InteractionTextMessage[]) => {
-        const index = messages.findIndex((m) => m.messageId === messageId);
+        const index = messages.findIndex((m) => m.id === messageId);
         if (index === -1) {
           return messages;
         }
@@ -75,6 +74,8 @@ function createStore() {
       });
     },
     clear: () => {
+      interaction.set(null);
+      session.set(null);
       update(() => []);
     },
   };
@@ -82,11 +83,25 @@ function createStore() {
 console.log("----------------------Store creted----------------------");
 
 export const store = createStore();
-window?.addEventListener("message", (event: MessageEvent<InteractionEvent<InteractionMessage>>) => {
-  activeSessionId = event.data.payload.sessionId || activeSessionId;
-  activeInteractionId = event.data.payload.interactionId;
-  store.upsert(event.data.payload as InteractionTextMessage);
-});
+export const activeInteraction = { subscribe: interaction.subscribe };
+export const activeSession = { subscribe: session.subscribe };
+
+window?.addEventListener(
+  "message",
+  (event: MessageEvent<InteractionEvent<InteractionMessage | Interaction | InteractionSession>>) => {
+    console.log("Message received", event.data);
+    switch (event.data.payload.elementType) {
+      case InteractionElementType.interaction:
+        interaction.set(event.data.payload as Interaction);
+        break;
+      case InteractionElementType.session:
+        session.set(event.data.payload as InteractionSession);
+        break;
+      case InteractionElementType.message:
+        store.upsert(event.data.payload as InteractionTextMessage);
+    }
+  }
+);
 
 export function generateRandomId(length: number = 10) {
   let result = "";
