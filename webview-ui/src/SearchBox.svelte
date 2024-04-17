@@ -2,7 +2,7 @@
 
 <script lang="ts">
   import type { TextArea } from "@vscode/webview-ui-toolkit";
-  import { activeInteraction, store,activeSession } from "./messages.store";
+  import { interactionStore, messagesStore, sessionStore } from "./messages.store";
   import { ParticipantType, type InteractionTextMessage, InteractionEvent } from "./dto/index";
   import { vscode } from "./utilities/vscode";
   import type { IEvent } from "./dto/events";
@@ -12,24 +12,23 @@
 
   let currentMessage: InteractionTextMessage;
 
-  $: interaction = $activeInteraction;
-  $: session = $activeSession;
-
   export function sendMessage() {
     const message = input.value;
     if (message.trim() !== "") {
       if (!currentMessage) {
-        currentMessage = store.create(message);
+        currentMessage = messagesStore.create(message);
       }
       currentMessage.payload.text = message;
+      const interaction = $interactionStore;
+      const session = $sessionStore;
 
-      store.upsert(currentMessage);
+      messagesStore.upsert(currentMessage);
       console.log("sending message", currentMessage);
       const event = new InteractionEvent<InteractionTextMessage>({
-        action: 'sent',
+        action: "sent",
         payload: currentMessage,
-        interactionId: interaction?.id??session?.id,
-      })
+        interactionId: interaction?.id ?? session?.id,
+      });
 
       vscode.postMessage(event);
 
@@ -39,19 +38,18 @@
   }
 
   async function clearConversation() {
-    store.clear();
-    
+    messagesStore.clear();
   }
 
   function writing(event) {
     if (input.value.trim() !== "" && !currentMessage) {
       console.log("writing set to true");
-      currentMessage = store.create("writing...");
+      currentMessage = messagesStore.create("writing...");
       return;
     }
     if (input.value.trim() === "" && currentMessage) {
       console.log("writing set to false");
-      store.remove(currentMessage.id);
+      messagesStore.remove(currentMessage.id);
       currentMessage = null;
     }
   }
@@ -62,19 +60,24 @@
     <vscode-text-area rows="4" id="user-input" bind:this={input} on:input={writing}>
       <span slot="start" class="codicon codicon-git-merge">Title</span>
     </vscode-text-area>
-    <p>Press <code>Ctrl</code>+<code>Enter</code> to send.</p>  
+    <p>Press <code>Ctrl</code>+<code>Enter</code> to send.</p>
   </section>
   <div class="search-toolbar">
     <div class="toolbar-grow">
-      {#if  $activeSession}
-        Session id <vscode-tag>{$activeSession?.id??''}</vscode-tag>      
+      {#if $sessionStore}
+        Session id <vscode-tag>{$sessionStore?.id ?? ""}</vscode-tag>
       {/if}
-      {#if $activeInteraction}
-        Interaction id <vscode-tag>{$activeInteraction?.id??''}</vscode-tag>  {JSON.stringify($activeInteraction?.participants?.agents??'')}
+      {#if $interactionStore}
+        Interaction id <vscode-tag>{$interactionStore?.id ?? ""}</vscode-tag>
+        {JSON.stringify($interactionStore?.participants?.agents ?? "")}
       {/if}
     </div>
-    <vscode-button appearance="primary" on:keydown={sendMessage}  on:click={sendMessage}>Send message</vscode-button>
-    <vscode-button appearance="primary" on:keydown={clearConversation} on:click={clearConversation}>Clear</vscode-button>
+    <vscode-button appearance="primary" on:keydown={sendMessage} on:click={sendMessage}
+      >Send message</vscode-button
+    >
+    <vscode-button appearance="primary" on:keydown={clearConversation} on:click={clearConversation}
+      >Clear</vscode-button
+    >
   </div>
 </section>
 
@@ -93,16 +96,16 @@
     justify-content: center;
   }
 
-  vscode-tag{
+  vscode-tag {
     margin-top: 0.8em;
     margin-bottom: 0.5em;
     margin-left: 1em;
   }
 
-  vscode-button{
+  vscode-button {
     margin-top: 0.5em;
     margin-bottom: 0.5em;
-    margin-right: 1em ;
+    margin-right: 1em;
   }
 
   .bottom-section {

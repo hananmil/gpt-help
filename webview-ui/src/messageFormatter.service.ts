@@ -4,7 +4,7 @@ export class MessageFormatter {
   constructor() {
     // hljs.initHighlightingOnLoad();
     // Register the plugin with highlight.js
-    hljs.addPlugin(this.plugin());
+    // hljs.addPlugin(this.plugin());
 
     const observer = new MutationObserver(this.handleMutations);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -33,36 +33,36 @@ export class MessageFormatter {
     });
   }
 
-  // my-plugin.js
-  plugin(): HLJSPlugin {
-    return {
-      // This function will be called by highlight.js when the plugin is loaded
-      // and should return an object with a "highlightBlock" function
-      // that modifies the generated HTML for each code block
-      "after:highlightElement": function (event) {
-        // Get the generated HTML for the code block
+  // // my-plugin.js
+  // plugin(): HLJSPlugin {
+  //   return {
+  //     // This function will be called by highlight.js when the plugin is loaded
+  //     // and should return an object with a "highlightBlock" function
+  //     // that modifies the generated HTML for each code block
+  //     "after:highlightElement": function (event) {
+  //       // Get the generated HTML for the code block
 
-        if (event.el.textContent.trim().length === 0) {
-          event.el.className = "";
-          return;
-        }
+  //       if (event.el.textContent.trim().length === 0) {
+  //         event.el.className = "";
+  //         return;
+  //       }
 
-        // Create a new div element
-        var div = document.createElement("section");
-        div.className = "code-toolbar";
-        var button = document.createElement("vscode-button");
-        button.innerText = "Copy";
-        // button.setAttribute("appearance", "primary")
-        div.appendChild(button);
+  //       // Create a new div element
+  //       var div = document.createElement("section");
+  //       div.className = "code-toolbar";
+  //       var button = document.createElement("vscode-button");
+  //       button.innerText = "Copy";
+  //       // button.setAttribute("appearance", "primary")
+  //       div.appendChild(button);
 
-        var button = document.createElement("vscode-button");
-        button.innerText = "Run";
-        // button.setAttribute("appearance", "primary")
-        div.appendChild(button);
+  //       var button = document.createElement("vscode-button");
+  //       button.innerText = "Run";
+  //       // button.setAttribute("appearance", "primary")
+  //       div.appendChild(button);
 
-        // Append the div element after the code block
-        event.el.insertAdjacentElement("afterend", div);
-      },
-    };
-  }
+  //       // Append the div element after the code block
+  //       event.el.insertAdjacentElement("afterend", div);
+  //     },
+  //   };
+  // }
 }
